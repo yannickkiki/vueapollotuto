@@ -11,6 +11,21 @@
 </template>
 
 <script>
+    import gql from "graphql-tag";
+    const ADD_TODO = gql`
+       mutation insert_todos($todo: String!, $isPublic: Boolean!) {
+         insert_todos(objects: {title: $todo, is_public: $isPublic}) {
+           affected_rows
+           returning {
+             id
+             title
+             is_completed
+             created_at
+             is_public
+           }
+         }
+       }
+     `;
   export default {
     props: ['type'],
     data() {
@@ -20,7 +35,36 @@
     },
     methods: {
       addTodo: function () {
-        // insert new todo into db
+          const title = this.newTodo && this.newTodo.trim();
+          const isPublic = this.type === "public" ? true : false;
+          this.$apollo.mutate({
+              mutation: ADD_TODO,
+              variables: {
+                  todo: title,
+                  isPublic: isPublic
+              },
+              update: (cache, { data: { insert_todos } }) => {
+                  // Read the data from our cache for this query.
+                  // eslint-disable-next-line
+                  console.log(insert_todos);
+                  try {
+                      if (this.type === "private") {
+                          const data = cache.readQuery({
+                              query: GET_MY_TODOS
+                          });
+                          const insertedTodo = insert_todos.returning;
+                          data.todos.splice(0, 0, insertedTodo[0]);
+                          cache.writeQuery({
+                              query: GET_MY_TODOS,
+                              data
+                          });
+                      }
+                  } catch (e) {
+                      console.error(e);
+                  }
+              },
+          });
+          this.newTodo = '';
       },
     }
   }

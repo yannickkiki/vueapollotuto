@@ -41,6 +41,14 @@
 </template>
 
 <script>
+    import gql from 'graphql-tag';
+    const TOGGLE_TODO = gql`
+   mutation update_todos($id: Int!, $isCompleted: Boolean!) {
+    update_todos(where: { id: { _eq: $id } }, _set: { is_completed: $isCompleted }) {
+       affected_rows
+     }
+   }
+ `;
   export default {
     props: ['todos', 'type'],
     methods: {
